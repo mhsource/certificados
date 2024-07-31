@@ -78,4 +78,47 @@ if __name__ == "__main__":
     Main.simulate_lambda_execution()
 
 
+import pytest
+from botocore.exceptions import ClientError
+from src.logica import increase_ecs_tasks
+
+@pytest.fixture
+def ecs_client_mock(mocker):
+    return mocker.patch('boto3.client')
+
+def test_increase_ecs_tasks_success(ecs_client_mock):
+    # Configurando o mock para retornar uma resposta bem-sucedida
+    ecs_client_mock.return_value.update_service.return_value = {
+        'service': {
+            'desiredCount': 5
+        }
+    }
+
+    response = increase_ecs_tasks('test-cluster', 'test-service', 5)
+    
+    assert response['service']['desiredCount'] == 5
+    ecs_client_mock.return_value.update_service.assert_called_once_with(
+        cluster='test-cluster',
+        service='test-service',
+        desiredCount=5
+    )
+
+def test_increase_ecs_tasks_client_error(ecs_client_mock):
+    # Configurando o mock para levantar uma exceção ClientError
+    ecs_client_mock.return_value.update_service.side_effect = ClientError(
+        error_response={'Error': {'Code': 'ServiceException', 'Message': 'An error occurred'}},
+        operation_name='UpdateService'
+    )
+
+    response = increase_ecs_tasks('test-cluster', 'test-service', 5)
+    
+    assert response is None
+    ecs_client_mock.return_value.update_service.assert_called_once_with(
+        cluster='test-cluster',
+        service='test-service',
+        desiredCount=5
+    )
+
+
+
 
