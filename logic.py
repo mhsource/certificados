@@ -52,3 +52,30 @@ def lambda_handler(event, context):
     }
 
 
+import json
+from lambda_function import lambda_handler
+
+class Main:
+    @staticmethod
+    def simulate_lambda_execution():
+        # Evento de exemplo que será passado para a função lambda_handler
+        event = {
+            'cluster_name': 'test-cluster',
+            'service_name': 'test-service',
+            'desired_count': 5
+        }
+        
+        # Simulando o contexto da Lambda (pode ser um objeto vazio ou um mock)
+        context = {}
+        
+        # Executando a função lambda_handler com o evento de exemplo e contexto
+        response = lambda_handler(event, context)
+        
+        # Imprimindo a resposta da função Lambda
+        print('Lambda Response:', response)
+
+if __name__ == "__main__":
+    Main.simulate_lambda_execution()
+
+
+
