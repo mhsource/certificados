@@ -1,0 +1,70 @@
+import json
+import boto3
+from botocore.config import Config
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.utils.dates import days_ago
+
+default_args = {
+    'owner': 'airflow',
+    'start_date': days_ago(1),
+}
+
+BUCKET_NAME = 'your_bucket_name'
+TXT_FILE_KEY = 'path/to/your_file.txt'
+DOWNLOAD_PATH = '/tmp/your_file.txt'
+JSON_PATH = '/tmp/output_file.json'
+UPLOAD_KEY = 'path/to/output_file.json'
+
+# Configuração do boto3
+s3_client = boto3.client('s3', config=Config(signature_version='s3v4', retries={'max_attempts': 10}, verify=False))
+
+def download_file_from_s3():
+    # Baixar o arquivo do S3
+    s3_client.download_file(BUCKET_NAME, TXT_FILE_KEY, DOWNLOAD_PATH)
+
+def process_txt_file():
+    # Ler o arquivo TXT posicional e gerar JSON
+    data = []
+    with open(DOWNLOAD_PATH, 'r') as file:
+        for line in file:
+            # Supondo que cada linha tenha campos de tamanhos fixos:
+            record = {
+                'campo1': line[0:10].strip(),
+                'campo2': line[10:20].strip(),
+                'campo3': line[20:30].strip(),
+                # Adicione mais campos conforme necessário
+            }
+            data.append(record)
+    
+    # Salvar o JSON em um arquivo temporário
+    with open(JSON_PATH, 'w') as json_file:
+        json.dump(data, json_file)
+
+def upload_file_to_s3():
+    # Fazer upload do arquivo JSON para o S3
+    s3_client.upload_file(JSON_PATH, BUCKET_NAME, UPLOAD_KEY)
+
+with DAG(
+    dag_id='process_s3_txt_to_json_divided',
+    default_args=default_args,
+    schedule_interval=None,
+    catchup=False,
+) as dag:
+
+    download_task = PythonOperator(
+        task_id='download_file_from_s3',
+        python_callable=download_file_from_s3,
+    )
+
+    process_task = PythonOperator(
+        task_id='process_txt_file',
+        python_callable=process_txt_file,
+    )
+
+    upload_task = PythonOperator(
+        task_id='upload_file_to_s3',
+        python_callable=upload_file_to_s3,
+    )
+
+    download_task >> process_task >> upload_task
