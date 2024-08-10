@@ -1,42 +1,93 @@
 import redis
 import json
+import csv
+import pymysql
+from awsglue.utils import getResolvedOptions
+import sys
+import boto3
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
-class RedisTableReader:
-    def __init__(self, redis_host='localhost', redis_port=6379, redis_db=0):
-        self.redis_host = redis_host
-        self.redis_port = redis_port
-        self.redis_db = redis_db
-        self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port, db=self.redis_db)
+# Função para conectar ao Redis
+def connect_to_redis(redis_host, redis_port, redis_db):
+    return redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
-    def read_table_as_json(self, table_key):
-        try:
-            # Ler todos os dados da "tabela" (supondo que seja um hash)
-            table_data = self.redis_client.hgetall(table_key)
-            
-            if not table_data:
-                print(f"Nenhum dado encontrado para a chave: {table_key}")
-                return None
-            
-            # Converter os dados de bytes para string e formar um dicionário
-            decoded_data = {k.decode('utf-8'): v.decode('utf-8') for k, v in table_data.items()}
-            
-            # Converter o dicionário para JSON
-            json_data = json.dumps(decoded_data, indent=4)
-            
-            # Imprimir o JSON
-            print(json_data)
-            
-            return json_data
-        except Exception as e:
-            print(f"Ocorreu um erro ao ler a tabela: {str(e)}")
-            return None
+# Função para ler dados da tabela no Redis
+def read_table_from_redis(redis_client, table_key):
+    table_data = redis_client.hgetall(table_key)
+    if not table_data:
+        raise ValueError(f"Nenhum dado encontrado para a chave: {table_key}")
+    decoded_data = {k.decode('utf-8'): json.loads(v.decode('utf-8')) for k, v in table_data.items()}
+    return decoded_data
 
-# Exemplo de uso
+# Função para transformar JSON complexo em JSON simples
+def transform_json(decoded_data):
+    transformed_data = []
+    for key, value in decoded_data.items():
+        if isinstance(value, list):
+            for item in value:
+                transformed_data.append({"id": key, "contaid": item['contaid']})
+        else:
+            transformed_data.append({"id": key, "contaid": value})
+    return transformed_data
+
+# Função para gerar CSV
+def generate_csv(data, csv_file_path):
+    csv_columns = data[0].keys()
+    try:
+        with open(csv_file_path, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            writer.writeheader()
+            for item in data:
+                writer.writerow(item)
+    except IOError as e:
+        raise IOError(f"Erro ao escrever CSV: {str(e)}")
+
+# Função para conectar ao MySQL
+def connect_to_mysql(mysql_host, mysql_port, mysql_user, mysql_password, mysql_db):
+    return pymysql.connect(host=mysql_host,
+                           user=mysql_user,
+                           password=mysql_password,
+                           database=mysql_db,
+                           port=mysql_port)
+
+# Função para inserir dados no MySQL de maneira transacional
+def insert_data_to_mysql(connection, data, mysql_table):
+    csv_columns = data[0].keys()
+    insert_query = f"INSERT INTO {mysql_table} ({', '.join(csv_columns)}) VALUES ({', '.join(['%s'] * len(csv_columns))})"
+    
+    try:
+        with connection.cursor() as cursor:
+            for item in data:
+                cursor.execute(insert_query, list(item.values()))
+            connection.commit()
+    except pymysql.MySQLError as e:
+        connection.rollback()
+        raise pymysql.MySQLError(f"Erro ao inserir dados no MySQL: {str(e)}")
+    finally:
+        connection.close()
+
+# Função principal do Glue
+def main():
+    # Obtenha os argumentos do Glue
+    args = getResolvedOptions(sys.argv, ['redis_host', 'redis_port', 'redis_db', 'table_key', 
+                                         'mysql_host', 'mysql_port', 'mysql_user', 'mysql_password', 
+                                         'mysql_db', 'mysql_table'])
+
+    # Conectar ao Redis
+    redis_client = connect_to_redis(args['redis_host'], int(args['redis_port']), int(args['redis_db']))
+
+    # Ler e transformar os dados
+    decoded_data = read_table_from_redis(redis_client, args['table_key'])
+    transformed_data = transform_json(decoded_data)
+
+    # Gerar arquivo CSV
+    csv_file_path = '/tmp/output.csv'
+    generate_csv(transformed_data, csv_file_path)
+
+    # Conectar ao MySQL e inserir os dados
+    mysql_connection = connect_to_mysql(args['mysql_host'], int(args['mysql_port']), args['mysql_user'], args['mysql_password'], args['mysql_db'])
+    insert_data_to_mysql(mysql_connection, transformed_data, args['mysql_table'])
+
+# Executar a função principal
 if __name__ == "__main__":
-    redis_host = 'localhost'
-    redis_port = 6379
-    redis_db = 0
-    table_key = 'sua_tabela'  # Substitua pela chave da sua tabela no Redis
-
-    reader = RedisTableReader(redis_host, redis_port, redis_db)
-    reader.read_table_as_json(table_key)
+    main()
