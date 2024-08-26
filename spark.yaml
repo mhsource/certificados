@@ -1,0 +1,92 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-creator
+rules:
+- apiGroups: [""]
+  resources: ["pods","services","configmaps","volumes"]
+  verbs: ["create","delete","patch", "update","get", "list", "watch"]
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-config
+data:
+  spark-defaults.conf: |
+    spark.master k8s://https://kubernetes.default.svc
+    spark.submit.deployMode cluster
+    spark.kubernetes.container.image spark:latest
+    spark.kubernetes.namespace default
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-creator-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-creator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: krb5-conf
+  namespace: default
+data:
+  krb5.conf: |
+    [libdefaults]
+      default_realm = EXAMPLE.COM
+    [realms]
+      EXAMPLE.COM = {
+        kdc = kdc.example.com
+        admin_server = kdc.example.com
+      }
+    [domain_realm]
+      .example.com = EXAMPLE.COM
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spark-job-fixed
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: spark-job
+        image: spark:latest
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        command: 
+          [
+           "/opt/spark/bin/spark-submit", 
+            "--class", "org.apache.spark.examples.SparkPi", 
+            "--master", "k8s://https://kubernetes.default.svc", 
+            "--deploy-mode", "cluster", 
+            "--conf", "spark.executor.instances=2", 
+            "--conf", "spark.kubernetes.container.image=spark:latest", 
+            "--conf","spark.kubernetes.kerberos.krb5.configMapName=krb5-conf",
+            "--conf","spark.kubernetes.executor.disableConfigMap=true",
+            "--conf", "spark.jars.ivy=/tmp/.ivy",
+            "local:///opt/spark/examples/jars/spark-examples_2.12-3.5.2.jar"
+          ]
+        env:
+        - name: SPARK_LOCAL_DIRS
+          value: /tmp/spark
+      restartPolicy: OnFailure
+  backoffLimit: 3
