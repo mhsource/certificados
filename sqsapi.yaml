@@ -1,0 +1,78 @@
+openapi: 3.0.1
+info:
+  title: API Gateway to SQS
+  description: API Gateway que envia mensagens diretamente para uma fila SQS.
+  version: 1.0.0
+servers:
+  - url: https://{restapi_id}.execute-api.{region}.amazonaws.com/{stage}
+    variables:
+      restapi_id:
+        default: "example123"
+      region:
+        default: "us-west-2"
+      stage:
+        default: "prod"
+paths:
+  /sendMessage:
+    post:
+      summary: Envia uma mensagem para o SQS
+      operationId: sendMessage
+      requestBody:
+        description: Mensagem a ser enviada para a fila SQS
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messageBody:
+                  type: string
+                  description: O conteúdo da mensagem
+                delaySeconds:
+                  type: integer
+                  description: O atraso em segundos antes da mensagem ser disponibilizada na fila
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId:
+                    type: string
+                    description: O ID da mensagem enviada
+        '500':
+          description: Erro no envio da mensagem
+      x-amazon-apigateway-integration:
+        uri: arn:aws:apigateway:{region}:sqs:path/{account_id}/{queue_name}
+        httpMethod: POST
+        type: aws_proxy
+        requestParameters:
+          integration.request.header.Content-Type: "'application/x-www-form-urlencoded'"
+        requestTemplates:
+          application/json: |
+            Action=SendMessage
+            &MessageBody=$input.body.messageBody
+            #if($input.body.delaySeconds)
+            &DelaySeconds=$input.body.delaySeconds
+            #end
+        responses:
+          default:
+            statusCode: 200
+            responseTemplates:
+              application/json: |
+                {
+                  "messageId": "$input.path('SendMessageResponse/SendMessageResult/MessageId')"
+                }
+components:
+  schemas:
+    SendMessageRequest:
+      type: object
+      properties:
+        messageBody:
+          type: string
+          description: O conteúdo da mensagem
+        delaySeconds:
+          type: integer
+          description: O atraso em segundos antes da mensagem ser disponibilizada na fila
