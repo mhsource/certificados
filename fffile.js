@@ -1,3 +1,10 @@
+   "headers": {
+            "Access-Control-Allow-Origin": "*",  # Permite todas as origens
+            "Access-Control-Allow-Methods": "*",  # Permite todos os métodos HTTP
+            "Access-Control-Allow-Headers": "*",  # Permite todos os cabeçalhos
+        }
+
+
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
