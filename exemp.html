@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <title>Abas Fixas no Bulma</title>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.is-active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tabs is-boxed is-centered">
+        <ul>
+            <li class="is-active" data-tab="tab1"><a>Home</a></li>
+            <li data-tab="tab2"><a>Sobre</a></li>
+            <li data-tab="tab3"><a>Serviços</a></li>
+            <li data-tab="tab4"><a>Contato</a></li>
+        </ul>
+    </div>
+
+    <div class="tab-content is-active" id="tab1">
+        <p>Bem-vindo à aba Home!</p>
+    </div>
+
+    <div class="tab-content" id="tab2">
+        <p>Esta é a aba Sobre.</p>
+    </div>
+
+    <div class="tab-content" id="tab3">
+        <p>Aqui estão os nossos serviços.</p>
+    </div>
+
+    <div class="tab-content" id="tab4">
+        <p>Entre em contato conosco através desta aba.</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Seleciona todas as abas
+            const tabs = document.querySelectorAll('.tabs ul li');
+
+            // Adiciona o evento de clique para cada aba
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove a classe is-active de todas as abas e conteúdos
+                    tabs.forEach(item => item.classList.remove('is-active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('is-active'));
+
+                    // Adiciona a classe is-active na aba clicada e no conteúdo correspondente
+                    tab.classList.add('is-active');
+                    const contentId = tab.getAttribute('data-tab');
+                    document.getElementById(contentId).classList.add('is-active');
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
