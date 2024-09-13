@@ -1,3 +1,6 @@
+locust --headless -u 300 -r 300 --host=http://api.sua-api-url.com
+
+
 from locust import HttpUser, TaskSet, task, constant
 
 # Classe que define o conjunto de tarefas (ações) dos usuários
