@@ -1,15 +1,28 @@
-from locust import HttpUser, TaskSet, task, between, constant
-import json
+from locust import HttpUser, TaskSet, task, constant
 
 # Classe que define o conjunto de tarefas (ações) dos usuários
 class UserBehavior(TaskSet):
 
     def on_start(self):
-        # Autenticação (exemplo usando Bearer Token)
-        response = self.client.post("http://api.sua-api-url.com/auth/login", json={
-            "username": "seu_usuario",
-            "password": "sua_senha"
-        })
+        # Autenticação usando application/x-www-form-urlencoded
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        # Corpo da requisição POST com client_id, client_secret, e grant_type
+        data = {
+            "client_id": "seu_client_id",
+            "client_secret": "seu_client_secret",
+            "grant_type": "client_credentials"
+        }
+
+        # Realiza o POST com a URL completa
+        response = self.client.post(
+            "http://api.sua-api-url.com/auth/token", 
+            data=data, 
+            headers=headers
+        )
+
+        # Armazena o token de acesso
         self.token = response.json()["access_token"]
 
     @task
