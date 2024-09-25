@@ -1,0 +1,45 @@
+{
+    "family": "aws-cli-efs-task",
+    "executionRoleArn": "arn:aws:iam::ID_DA_CONTA:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::ID_DA_CONTA:role/ecsTaskRole",
+    "networkMode": "awsvpc",
+    "containerDefinitions": [
+        {
+            "name": "aws-cli-container",
+            "image": "amazon/aws-cli",
+            "essential": true,
+            "command": ["sh", "-c", "aws s3 cp s3://nome-do-bucket/caminho/para/arquivo /mnt/efs/"],
+            "mountPoints": [
+                {
+                    "sourceVolume": "efs-volume",
+                    "containerPath": "/mnt/efs"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/aws-cli-efs-task",
+                    "awslogs-region": "região",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "volumes": [
+        {
+            "name": "efs-volume",
+            "efsVolumeConfiguration": {
+                "fileSystemId": "ID_DO_EFS",
+                "transitEncryption": "ENABLED",
+                "rootDirectory": "/",
+                "authorizationConfig": {
+                    "accessPointId": "ID_DO_ACCESS_POINT", // Opcional
+                    "iam": "ENABLED"
+                }
+            }
+        }
+    ],
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512"
+}
