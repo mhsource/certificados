@@ -1,0 +1,7 @@
+pyspark
+requests
+boto3
+pyarrow
+pandas
+ujson
+simplejson
