@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  title: Exemplo de API
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      summary: Listar todos os pets
+      operationId: listPets
+      responses:
+        '200':
+          description: Lista de pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: "Fido"
+      x-examples:
+        python:
+          summary: Exemplo em Python
+          value: |
+            import requests
+            
+            response = requests.get("https://api.exemplo.com/pets")
+            print(response.json())
+        javascript:
+          summary: Exemplo em JavaScript
+          value: |
+            fetch("https://api.exemplo.com/pets")
+              .then(response => response.json())
+              .then(data => console.log(data));
+        curl:
+          summary: Exemplo em cURL
+          value: |
+            curl -X GET "https://api.exemplo.com/pets" -H "accept: application/json"
