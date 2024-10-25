@@ -1,43 +1,84 @@
 openapi: 3.0.0
+servers:
+  - url: //petstore.swagger.io/v2
+    description: Default server
+  - url: //petstore.swagger.io/sandbox
+    description: Sandbox server
 info:
-  title: Exemplo de API
+  description: |
+    npx @redocly/cli build-docs testyaml.yaml
+    This is a sample server Petstore server.
+    You can find out more about Swagger at
+    [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).
+    For this sample, you can use the api key `special-key` to test the authorization filters.
   version: 1.0.0
+  title: Swagger Petstore
+  summary: My lovely API
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    name: API Support
+    email: apiteam@swagger.io
+    url: https://github.com/Redocly/redoc
+  x-logo:
+    url: 'https://redocly.github.io/redoc/petstore-logo.png'
+    altText: Petstore logo
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    identifier: Apache 2.0
 paths:
   /pets:
-    get:
-      summary: Listar todos os pets
-      operationId: listPets
+    post:
+      summary: Criar um novo pet
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
       responses:
-        '200':
-          description: Lista de pets
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                      example: 1
-                    name:
-                      type: string
-                      example: "Fido"
-      x-examples:
-        python:
-          summary: Exemplo em Python
-          value: |
-            import requests
-            
-            response = requests.get("https://api.exemplo.com/pets")
-            print(response.json())
-        javascript:
-          summary: Exemplo em JavaScript
-          value: |
-            fetch("https://api.exemplo.com/pets")
-              .then(response => response.json())
-              .then(data => console.log(data));
-        curl:
-          summary: Exemplo em cURL
-          value: |
-            curl -X GET "https://api.exemplo.com/pets" -H "accept: application/json"
+        '201':
+          description: Pet criado com sucesso
+        '422':
+          description: Erro de validação
+      x-codeSamples:
+        - lang: 'C#'
+          source: |
+            PetStore.v1.Pet pet = new PetStore.v1.Pet();
+            pet.setApiKey("your api key");
+            pet.petType = PetStore.v1.Pet.TYPE_DOG;
+            pet.name = "Rex";
+            // set other fields
+            PetStoreResponse response = pet.create();
+            if (response.statusCode == HttpStatusCode.Created)
+            {
+              // Successfully created
+            }
+            else
+            {
+              // Something wrong -- check response for errors
+              Console.WriteLine(response.getRawResponse());
+            }
+        - lang: 'PHP'
+          source: |
+            $form = new \PetStore\Entities\Pet();
+            $form->setPetType("Dog");
+            $form->setName("Rex");
+            // set other fields
+            try {
+                $pet = $client->pets()->create($form);
+            } catch (UnprocessableEntityException $e) {
+                var_dump($e->getErrors());
+            }
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        petType:
+          type: string
