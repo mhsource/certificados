@@ -1,0 +1,60 @@
+{
+  "family": "metabase-task",
+  "containerDefinitions": [
+    {
+      "name": "metabase",
+      "image": "metabase/metabase:latest",
+      "memory": 512,
+      "cpu": 256,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "metabase-efs",
+          "containerPath": "/metabase-data"
+        }
+      ],
+      "environment": [
+        {
+          "name": "MB_DB_TYPE",
+          "value": "h2"
+        },
+        {
+          "name": "MB_DB_FILE",
+          "value": "/metabase-data/metabase.db"
+        },
+        {
+          "name": "MB_JETTY_PORT",
+          "value": "3000"
+        },
+        {
+          "name": "MB_JETTY_HOST",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "MB_SITE_URL",
+          "value": "https://metabase.itau.com"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "metabase-efs",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "<YOUR_EFS_FILE_SYSTEM_ID>",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "<YOUR_ACCESS_POINT_ID>",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ]
+}
