@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: meu-ingress-https-redirect
+  namespace: meu-namespace
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+
+    # Define as portas HTTP e HTTPS para o ALB
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+
+    # Especifica o ARN do certificado ACM para HTTPS
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGIAO:ID_DA_CONTA:certificate/ID_DO_CERTIFICADO
+
+    # Define uma regra de redirecionamento de HTTP para HTTPS
+    alb.ingress.kubernetes.io/actions.redirect-to-https: >
+      {"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}
+
+    # Aplica a ação de redirecionamento à rota HTTP
+    alb.ingress.kubernetes.io/default-actions: '[{"Type": "fixed-response", "FixedResponseConfig": {"StatusCode": "404"}}, {"Type": "forward", "ForwardConfig": {"TargetGroups": [{"ServiceName": "meu-servico", "ServicePort": "80"}]}}]'
+
+    # Configurações de segurança
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxx
+    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxx,subnet-yyyyyyyy
+
+spec:
+  rules:
+    - host: exemplo.com
+      http:
+        paths:
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: meu-servico
+                port:
+                  number: 80
