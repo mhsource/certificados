@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Id": "SQSQueuePolicy",
+  "Statement": [
+    {
+      "Sid": "Allow-CaptureAccount-SendMessage",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ID_DA_CONTA_DE_CAPTURA:role/RoleLambdaCapture"
+      },
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:REGIÃO:ID_DA_CONTA_DE_GERENCIAMENTO:MinhaFilaManager"
+    }
+  ]
+}
